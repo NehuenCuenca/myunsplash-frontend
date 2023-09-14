@@ -7,7 +7,26 @@
     </div>
     <div class="actions">
       <input type="text" name="" id="" class="search-by-name" placeholder="🔍 Search by name">
-      <button type="button" class="add-photo">Add a photo</button>
+      <button type="button" class="add-photo" @click="openForm">Add a photo</button>
+
+      <div class="modal" :class="isAddingANewPhoto ? 'active' : ''">
+        <form @submit.prevent class="adding-new-photo">
+          <h3 class="title-modal">Add a new photo</h3>
+          <div class="field">
+            <label for="label-tag">Label: </label>
+            <input type="text" id="label-tag" name="label-tag" />
+          </div>
+          <div class="field">
+            <label for="url-tag">Photo URL: </label>
+            <input type="text" id="url-tag" name="url-tag" />
+          </div>
+
+          <div class="buttons">
+            <button type="button" class="cancel" @click="closeForm">Cancel</button>
+            <button type="submit">Submit</button>
+          </div>
+        </form>
+      </div>
     </div>
   </header>
   <main>
@@ -46,17 +65,31 @@
 </template>
 
 <script>
+import { ref } from 'vue';
+
 
 export default {
   setup() {
 
+    const isAddingANewPhoto = ref(false)
+
+    const openForm = () => {
+      isAddingANewPhoto.value = true
+    }
+    const closeForm = () => {
+      isAddingANewPhoto.value = false
+    }
+
     return {
+      isAddingANewPhoto,
+      openForm,
+      closeForm,
     }
   }
 }
 </script>
 
-<style scoped>
+<style>
 header {
   grid-area: header;
   width: 100%;
@@ -160,7 +193,10 @@ li.grid-item-photo {
   opacity: 1;
 }
 
-.on-hover > * { position: absolute; }
+.on-hover>* {
+  position: absolute;
+}
+
 .on-hover .title {
   left: 5%;
   bottom: 10%;
@@ -168,6 +204,7 @@ li.grid-item-photo {
   font: 700 1.125rem 'Montserrat', sans-serif;
   color: white;
 }
+
 .on-hover button.delete {
   right: 10%;
   top: 10%;
@@ -179,4 +216,80 @@ li.grid-item-photo {
   color: #EB5757;
 }
 
+body:has(header .actions .modal.active) {
+  overflow-y: hidden;
+}
+
+.modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity .4s ease;
+  display: grid;
+  place-items: center;
+}
+
+.modal.active {
+  pointer-events: all;
+  background-color: rgba(51, 51, 51, 0.454);
+  opacity: 1;
+  z-index: 999;
+}
+
+form.adding-new-photo {
+  width: 50vw;
+  border-radius: 12px;
+  background-color: #FFFF;
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 100%;
+  grid-auto-rows: auto;
+  gap: 2vh 0;
+}
+
+.modal .title-modal {
+  font: 500 1.25rem 'Noto Sans', sans-serif;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 1vh 0;
+  font: 500 14px 'Noto Sans', sans-serif;
+}
+
+.field label {
+  color: #4F4F4F;
+  cursor: pointer;
+}
+
+.field input {
+  border: 1px solid #4F4F4F;
+  border-radius: 12px;
+  padding: 10px 10px;
+  color: #BDBDBD;
+}
+
+.buttons {
+  place-self: center end;
+}
+
+button.cancel {
+  background-color: transparent;
+  font: 500 1rem 'Noto Sans', sans-serif;
+  color: #BDBDBD;
+  margin-right: 20px;
+}
+
+.buttons button[type="submit"] {
+  background-color: #3DB46D;
+  font: 700 1rem 'Noto Sans', sans-serif;
+  color: #FFFF;
+  padding: 10px 15px;
+  border-radius: 12px;
+}
 </style>
