@@ -7,22 +7,22 @@
     </div>
     <div class="actions">
       <input type="text" name="" id="" class="search-by-name" placeholder="🔍 Search by name">
-      <button type="button" class="add-photo" @click="openForm">Add a photo</button>
+      <button type="button" class="add-photo" @click="openForm('adding-new-photo')">Add a photo</button>
 
       <div class="modal" :class="isAddingANewPhoto ? 'active' : ''">
-        <form @submit.prevent class="adding-new-photo">
+        <form @submit.prevent="addingNewPhoto" class="adding-new-photo">
           <h3 class="title-modal">Add a new photo</h3>
           <div class="field">
             <label for="label-tag">Label: </label>
-            <input type="text" id="label-tag" name="label-tag" />
+            <input type="text" id="label-tag" name="label-tag" v-model="labelNewImage" />
           </div>
           <div class="field">
             <label for="url-tag">Photo URL: </label>
-            <input type="text" id="url-tag" name="url-tag" />
+            <input type="text" id="url-tag" name="url-tag" v-model="urlNewImage" />
           </div>
 
           <div class="buttons">
-            <button type="button" class="cancel" @click="closeForm">Cancel</button>
+            <button type="button" class="cancel" @click="closeForm('adding-new-photo')">Cancel</button>
             <button type="submit">Submit</button>
           </div>
         </form>
@@ -35,31 +35,26 @@
         Photo 1
         <div class="on-hover">
           <span class="title">This is a title example </span>
-          <button class="delete">Delete</button>
+          <button class="delete" @click="openForm('deleting-photo')">Delete</button>
+
         </div>
-      </li>
-      <li class="grid-item-photo">
-        Photo 2
-        <div class="on-hover">
-          <span class="title">This is a title example </span>
-          <button class="delete">Delete</button>
-        </div>
-      </li>
-      <li class="grid-item-photo">
-        Photo 3
-        <div class="on-hover">
-          <span class="title">This is a title example </span>
-          <button class="delete">Delete</button>
-        </div>
-      </li>
-      <li class="grid-item-photo">
-        Photo 4
-        <div class="on-hover">
-          <span class="title">This is a title example </span>
-          <button class="delete">Delete</button>
-        </div>
+
       </li>
     </ul>
+    <div class="modal" :class="isDeletingAPhoto ? 'active' : ''">
+      <form @submit.prevent class="deleting-photo">
+        <h3 class="title-modal">Are you sure?</h3>
+        <div class="field">
+          <label for="password-tag">Password: </label>
+          <input type="password" id="password-tag" name="password-tag" />
+        </div>
+
+        <div class="buttons">
+          <button type="button" class="cancel" @click="closeForm('deleting-photo')">Cancel</button>
+          <button type="submit">Delete</button>
+        </div>
+      </form>
+    </div>
   </main>
   <footer>created by Nehuen - devChallenges.io</footer>
 </template>
@@ -72,18 +67,111 @@ export default {
   setup() {
 
     const isAddingANewPhoto = ref(false)
+    const isDeletingAPhoto = ref(false)
 
-    const openForm = () => {
-      isAddingANewPhoto.value = true
+    const newImage = ref(null)
+    const labelNewImage = ref('')
+    const urlNewImage = ref('https://picsum.photos/200/300')
+
+    const uploadImage = async () => {
+      const fallbackName = labelNewImage.value.trim() || `nuevaImagen${Date.now()}`
+
+      // https://api.cloudinary.com/v1_1/de9d1foso/image/upload
+      const preset = 'ml_default'
+      const cloud_name = 'de9d1foso'
+
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`
+
+      const formData = new FormData();
+      formData.append('upload_preset', `${preset}`)
+      formData.append('file', newImage.value);
+      formData.append('tags', fallbackName);
+
+      try {
+        const res = await fetch(cloudinaryUrl, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const { error: { message } } = await res.json()
+          throw new Error(`${res.statusText}: ${message}`)
+        }
+
+        const data = await res.json();
+        console.log(data.secure_url);
+      } catch (error) {
+        console.error(error, error.message);
+        alert(`${error}`)
+      }
     }
-    const closeForm = () => {
-      isAddingANewPhoto.value = false
+
+
+
+    const createFile = (file) => {
+      if (!file.type.match('image.*')) {
+        alert('The file specified on the url is not an image');
+        return;
+      }
+
+      let reader = new FileReader();
+
+      reader.addEventListener('load', async function (e) {
+        newImage.value = e.target.result;
+        uploadImage()
+      })
+
+      reader.readAsDataURL(file);
+    }
+
+    const getImage = async () => {
+      try {
+        const resp = await fetch(urlNewImage.value)
+        const achievedImage = await resp.blob()
+        createFile(achievedImage)
+
+      } catch (error) {
+        console.error('An error has ocurred: ', error)
+        alert('An error has ocurred: ', error)
+      }
+    }
+
+    const addingNewPhoto = async () => {
+      await getImage()
+    }
+
+    const openForm = async (form) => {
+      console.log(form);
+      switch (form) {
+        case 'adding-new-photo':
+          isAddingANewPhoto.value = true
+          break;
+        case 'deleting-photo':
+          isDeletingAPhoto.value = true
+          break;
+      }
+    }
+
+    const closeForm = (form) => {
+      switch (form) {
+        case 'adding-new-photo':
+          isAddingANewPhoto.value = false
+          break;
+        case 'deleting-photo':
+          isDeletingAPhoto.value = false
+          break;
+      }
     }
 
     return {
       isAddingANewPhoto,
+      isDeletingAPhoto,
+      newImage,
+      labelNewImage,
+      urlNewImage,
       openForm,
       closeForm,
+      addingNewPhoto
     }
   }
 }
@@ -240,7 +328,7 @@ body:has(header .actions .modal.active) {
   z-index: 999;
 }
 
-form.adding-new-photo {
+.modal form {
   width: 50vw;
   border-radius: 12px;
   background-color: #FFFF;
@@ -285,11 +373,19 @@ button.cancel {
   margin-right: 20px;
 }
 
-.buttons button[type="submit"] {
-  background-color: #3DB46D;
+.modal form .buttons button[type="submit"] {
   font: 700 1rem 'Noto Sans', sans-serif;
   color: #FFFF;
   padding: 10px 15px;
   border-radius: 12px;
+}
+
+.adding-new-photo .buttons button[type="submit"] {
+  background-color: #3DB46D;
+
+}
+
+.deleting-photo .buttons button[type="submit"] {
+  background: #EB5757;
 }
 </style>
