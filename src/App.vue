@@ -61,6 +61,7 @@
 
 <script>
 import { ref } from 'vue';
+import SHA1 from './helpers/encrypt';
 
 
 export default {
@@ -74,18 +75,21 @@ export default {
     const urlNewImage = ref('https://picsum.photos/200/300')
 
     const uploadImage = async () => {
+      // const signed = SHA1('eager=w_400,h_300,c_pad|w_260,h_200,c_crop&public_id=sample_image&timestamp=1315060510abcd')
+      // console.log(signed);
       const fallbackName = labelNewImage.value.trim() || `nuevaImagen${Date.now()}`
 
       // https://api.cloudinary.com/v1_1/de9d1foso/image/upload
-      const preset = 'ml_default'
+      const preset = 'kiwikvtp'
       const cloud_name = 'de9d1foso'
 
       const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`
 
       const formData = new FormData();
-      formData.append('upload_preset', `${preset}`)
-      formData.append('file', newImage.value);
       formData.append('tags', fallbackName);
+      formData.append('upload_preset', preset)
+      formData.append('file', newImage.value);
+      
 
       try {
         const res = await fetch(cloudinaryUrl, {
