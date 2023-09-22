@@ -29,18 +29,18 @@
       </div>
     </div>
   </header>
+
   <main>
     <ul class="grid-filtered-photos">
-      <li class="grid-item-photo">
-        Photo 1
+      <li class="grid-item-photo" v-for="(image, indexImage) in allImages" :key="indexImage">
+        <img :src="image.url" :alt="image.name" >
         <div class="on-hover">
-          <span class="title">This is a title example </span>
-          <button class="delete" @click="openForm('deleting-photo')">Delete</button>
-
+          <span class="title">{{ image.name }}</span>
+          <button class="delete" @click="openForm('deleting-photo')"> 🗑 delete </button>
         </div>
-
       </li>
     </ul>
+
     <div class="modal" :class="isDeletingAPhoto ? 'active' : ''">
       <form @submit.prevent class="deleting-photo">
         <h3 class="title-modal">Are you sure?</h3>
@@ -56,16 +56,20 @@
       </form>
     </div>
   </main>
+
   <footer>created by Nehuen - devChallenges.io</footer>
 </template>
 
 <script>
-import { ref } from 'vue';
-import SHA1 from './helpers/encrypt';
+import { onMounted, ref } from 'vue';
 
 
 export default {
   setup() {
+
+    onMounted( async() => {
+      await getAllImages()
+    })
 
     const isAddingANewPhoto = ref(false)
     const isDeletingAPhoto = ref(false)
@@ -73,10 +77,19 @@ export default {
     const newImage = ref(null)
     const labelNewImage = ref('')
     const urlNewImage = ref('https://picsum.photos/200/300')
+    const allImages = ref([]);
+
+
+    const getAllImages = async() => { 
+      const urlApi = `http://127.0.0.1:8000/api/images`; 
+
+      const resp = await fetch(urlApi);
+      const data = await resp.json();
+      console.log(data);
+      allImages.value = data.images
+    }
 
     const uploadImage = async () => {
-      // const signed = SHA1('eager=w_400,h_300,c_pad|w_260,h_200,c_crop&public_id=sample_image&timestamp=1315060510abcd')
-      // console.log(signed);
       const fallbackName = labelNewImage.value.trim() || `nuevaImagen${Date.now()}`
 
       // https://api.cloudinary.com/v1_1/de9d1foso/image/upload
@@ -122,6 +135,7 @@ export default {
 
       reader.addEventListener('load', async function (e) {
         newImage.value = e.target.result;
+        console.log(newImage.value);
         uploadImage()
       })
 
@@ -175,7 +189,8 @@ export default {
       urlNewImage,
       openForm,
       closeForm,
-      addingNewPhoto
+      addingNewPhoto,
+      allImages
     }
   }
 }
@@ -269,7 +284,12 @@ li.grid-item-photo {
   position: relative;
 }
 
-
+.grid-item-photo img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  transition: all .5s ease;
+}
 
 .grid-item-photo .on-hover {
   height: 100%;
@@ -283,6 +303,10 @@ li.grid-item-photo {
 
 .grid-item-photo:hover .on-hover {
   opacity: 1;
+}
+
+.grid-item-photo:hover img {
+  filter: brightness(.7);
 }
 
 .on-hover>* {
