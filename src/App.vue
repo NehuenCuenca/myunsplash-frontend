@@ -7,7 +7,7 @@
     </div>
     <div class="actions">
       <input type="text" name="" id="" class="search-by-name" placeholder="🔍 Search by name">
-      <button type="button" class="add-photo" @click="openForm('adding-new-photo')">Add a photo</button>
+      <button type="button" class="add-photo" @click="openForm('adding-new-photo', -1)">Add a photo</button>
 
       <div class="modal" :class="isAddingANewPhoto ? 'active' : ''">
         <form @submit.prevent="addingNewPhoto" class="adding-new-photo">
@@ -33,20 +33,20 @@
   <main>
     <ul class="grid-filtered-photos">
       <li class="grid-item-photo" v-for="(image, indexImage) in allImages" :key="indexImage">
-        <img :src="image.url" :alt="image.name" >
+        <img :src="image.url" :alt="image.name">
         <div class="on-hover">
           <span class="title">{{ image.name }}</span>
-          <button class="delete" @click="openForm('deleting-photo')"> 🗑 delete </button>
+          <button class="delete" @click="openForm('deleting-photo', image.id)"> 🗑 delete </button>
         </div>
       </li>
     </ul>
 
     <div class="modal" :class="isDeletingAPhoto ? 'active' : ''">
-      <form @submit.prevent class="deleting-photo">
+      <form @submit.prevent="deletePhoto" class="deleting-photo">
         <h3 class="title-modal">Are you sure?</h3>
         <div class="field">
           <label for="password-tag">Password: </label>
-          <input type="password" id="password-tag" name="password-tag" />
+          <input type="password" id="password-tag" name="password-tag" v-model="passwordForDelete" />
         </div>
 
         <div class="buttons">
@@ -67,7 +67,7 @@ import { onMounted, ref } from 'vue';
 export default {
   setup() {
 
-    onMounted( async() => {
+    onMounted(async () => {
       await getAllImages()
     })
 
@@ -79,9 +79,12 @@ export default {
     const urlNewImage = ref('https://picsum.photos/200/300')
     const allImages = ref([]);
 
+    const imageSelected = ref(-1)
+    const passwordForDelete = ref('')
 
-    const getAllImages = async() => { 
-      const urlApi = `http://127.0.0.1:8000/api/images`; 
+
+    const getAllImages = async () => {
+      const urlApi = `http://127.0.0.1:8000/api/images`;
 
       const resp = await fetch(urlApi);
       const data = await resp.json();
@@ -89,37 +92,58 @@ export default {
       allImages.value = data.images
     }
 
+    const deletePhoto = async () => {
+      if (passwordForDelete.value.trim().length === 0) {
+        return alert('Type the password please.')
+      }
+
+      try {
+        const resp = await fetch(`http://127.0.0.1:8000/api/image/delete/${imageSelected.value}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password: passwordForDelete.value }),
+        })
+        const data = await resp.json();
+        console.log(data);
+      } catch (error) {
+        console.error('Something explode: ', error)
+      }
+
+    }
+
     const uploadImage = async () => {
       const fallbackName = labelNewImage.value.trim() || `nuevaImagen${Date.now()}`
 
       // https://api.cloudinary.com/v1_1/de9d1foso/image/upload
-      const preset = 'kiwikvtp'
-      const cloud_name = 'de9d1foso'
 
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`
+      const apiUrl = `http://127.0.0.1:8000/api/image/add`
 
       const formData = new FormData();
-      formData.append('tags', fallbackName);
-      formData.append('upload_preset', preset)
-      formData.append('file', newImage.value);
-      
+      formData.append('name', fallbackName);
+      formData.append('newImage', newImage.value);
+      formData.append('_method', 'POST')
+
 
       try {
-        const res = await fetch(cloudinaryUrl, {
+        const resp = await fetch(apiUrl, {
           method: 'POST',
+          'Content-Type': 'multipart/form-data',
           body: formData,
         });
 
-        if (!res.ok) {
-          const { error: { message } } = await res.json()
-          throw new Error(`${res.statusText}: ${message}`)
+
+        if (!resp.ok) {
+          const { msg } = await resp.json()
+          throw new Error(`${resp.statusText}: ${msg}`)
         }
 
-        const data = await res.json();
-        console.log(data.secure_url);
+        const data = await resp.json();
+        console.log(data);
       } catch (error) {
         console.error(error, error.message);
-        alert(`${error}`)
+        // alert(`${error}`)
       }
     }
 
@@ -158,8 +182,8 @@ export default {
       await getImage()
     }
 
-    const openForm = async (form) => {
-      console.log(form);
+    const openForm = async (form, imageId) => {
+      console.log({ form, imageId });
       switch (form) {
         case 'adding-new-photo':
           isAddingANewPhoto.value = true
@@ -168,6 +192,8 @@ export default {
           isDeletingAPhoto.value = true
           break;
       }
+
+      imageSelected.value = imageId
     }
 
     const closeForm = (form) => {
@@ -179,6 +205,8 @@ export default {
           isDeletingAPhoto.value = false
           break;
       }
+
+      imageSelected.value = -1
     }
 
     return {
@@ -190,7 +218,9 @@ export default {
       openForm,
       closeForm,
       addingNewPhoto,
-      allImages
+      allImages,
+      passwordForDelete,
+      deletePhoto
     }
   }
 }
