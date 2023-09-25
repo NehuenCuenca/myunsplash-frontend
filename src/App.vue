@@ -82,7 +82,6 @@ export default {
     const imageSelected = ref(-1)
     const passwordForDelete = ref('')
 
-
     const getAllImages = async () => {
       const urlApi = `http://127.0.0.1:8000/api/images`;
 
@@ -105,16 +104,25 @@ export default {
           },
           body: JSON.stringify({ password: passwordForDelete.value }),
         })
+
+        if (!resp.ok) {
+          const { msg, reason } = await resp.json()
+          throw new Error(`${resp.statusText} | ${reason}`)
+        }
+
         const data = await resp.json();
+        alert(data.msg)
         console.log(data);
       } catch (error) {
-        console.error('Something explode: ', error)
+        console.error(error.message)
+        alert(error)
       }
 
+      closeForm('deleting-photo')
     }
 
     const uploadImage = async () => {
-      const fallbackName = labelNewImage.value.trim() || `nuevaImagen${Date.now()}`
+      const fallbackName = labelNewImage.value.trim() || `newImage${Date.now()}`
 
       // https://api.cloudinary.com/v1_1/de9d1foso/image/upload
 
@@ -135,16 +143,21 @@ export default {
 
 
         if (!resp.ok) {
-          const { msg } = await resp.json()
-          throw new Error(`${resp.statusText}: ${msg}`)
+          const { msg, reason } = await resp.json()
+          throw new Error(`${resp.statusText} | ${reason}`)
         }
 
         const data = await resp.json();
+        alert(data.msg)
         console.log(data);
+
+        await getAllImages()
       } catch (error) {
         console.error(error, error.message);
-        // alert(`${error}`)
+        alert(`${error}`)
       }
+
+      closeForm('adding-new-photo')
     }
 
 
@@ -183,7 +196,8 @@ export default {
     }
 
     const openForm = async (form, imageId) => {
-      console.log({ form, imageId });
+      window.scrollTo(0, 0);
+
       switch (form) {
         case 'adding-new-photo':
           isAddingANewPhoto.value = true
@@ -220,7 +234,7 @@ export default {
       addingNewPhoto,
       allImages,
       passwordForDelete,
-      deletePhoto
+      deletePhoto,
     }
   }
 }
@@ -362,7 +376,7 @@ li.grid-item-photo {
   color: #EB5757;
 }
 
-body:has(header .actions .modal.active) {
+body:has(.modal.active) {
   overflow-y: hidden;
 }
 
