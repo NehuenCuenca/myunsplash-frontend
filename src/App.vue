@@ -6,7 +6,8 @@
       <span class="sub-title">devchallenges.io</span>
     </div>
     <div class="actions">
-      <input type="text" name="" id="" class="search-by-name" placeholder="🔍 Search by name">
+      <input type="text" name="" id="" @change.prevent="getImagesByName" class="search-by-name"
+        placeholder="🔍 Search by name">
       <button type="button" class="add-photo" @click="openForm('adding-new-photo', -1)">Add a photo</button>
 
       <div class="modal" :class="isAddingANewPhoto ? 'active' : ''">
@@ -91,6 +92,24 @@ export default {
       allImages.value = data.images
     }
 
+    const getImagesByName = async (e) => {
+      const term = e.target.value
+
+      try {
+        const resp = await fetch(`http://127.0.0.1:8000/api/images/${term}`)
+        const data = await resp.json();
+        allImages.value = data.images
+
+        if (!resp.ok) {
+          const { msg, reason } = await resp.json()
+          throw new Error(`${resp.statusText} | ${reason}`)
+        }
+      } catch (error) {
+        console.error(error.message)
+        alert(error)
+      }
+    }
+
     const deletePhoto = async () => {
       if (passwordForDelete.value.trim().length === 0) {
         return alert('Type the password please.')
@@ -112,7 +131,7 @@ export default {
 
         const data = await resp.json();
         alert(data.msg)
-        console.log(data);
+        getAllImages()
       } catch (error) {
         console.error(error.message)
         alert(error)
@@ -235,6 +254,7 @@ export default {
       allImages,
       passwordForDelete,
       deletePhoto,
+      getImagesByName,
     }
   }
 }
