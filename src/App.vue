@@ -33,13 +33,16 @@
 
   <main>
     <ul class="grid-filtered-photos">
-      <li class="grid-item-photo" v-for="(image, indexImage) in allImages" :key="indexImage">
+      <li v-if="allImages.length > 0" class="grid-item-photo" v-for="(image, indexImage) in allImages" :key="indexImage" >
         <img :src="image.url" :alt="image.name">
         <div class="on-hover">
           <span class="title">{{ image.name }}</span>
           <button class="delete" @click="openForm('deleting-photo', image.id)"> 🗑 delete </button>
         </div>
       </li>
+      <span v-else>
+        <span>There are no images, add one.</span>        
+      </span>
     </ul>
 
     <div class="modal" :class="isDeletingAPhoto ? 'active' : ''">
